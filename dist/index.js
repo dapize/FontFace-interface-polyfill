@@ -13,7 +13,7 @@
 
   var FontFace = function (family, fonts, settings) {
     this.config = {
-      'font-family': family,
+      'font-family': '\'' + family + '\'',
       'font-style': 'normal',
       'font-weight': 'normal',
       'font-feature-settings': 'normal',
@@ -145,8 +145,9 @@
     var rules = '';
     Object.keys(config).forEach(function (rule) {
       var val = config[rule];
-      if (typeof val === 'string') val = val.replace(/'/g);
-      if (rule !== 'font-family') rule = rule.replace(/'/g);
+      if (typeof val === 'string' && rule !== 'font-family') {
+        rule = rule.replace(/'/g);
+      }
       rules += rule + ': ' + val + '; ';
     });
     if (navigator.appVersion.indexOf("MSIE 10") !== -1) {
@@ -208,12 +209,8 @@
     };
   };
 
-  if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = FontFace;
-  } else {
-    if (typeof window.FontFace === 'undefined') {
-      document.fonts = docFonts;
-      window.FontFace = FontFace;
-    }
+  if (typeof window.FontFace === 'undefined') {
+    document.fonts = docFonts;
+    window.FontFace = FontFace;
   }
 }());

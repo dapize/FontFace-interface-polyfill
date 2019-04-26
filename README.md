@@ -5,7 +5,7 @@ Actualmente solo tiene un sólo método que es el 'load', y sirve para realizar 
 Este polyfill mantiene la sintaxis exacta de la interfaz nativa FontFace, así que no hay ningún problema que se use exactamente igual, por ejemplo:
 
 ```js
-var omnes = new FontFace('Omnes', "url('../fonts/omnes-semibold.ttf') format('truetype'), url('fonts/omnes-semibold.woff2') format('woff2'), url('fonts/omnes-semibold.woff') format('woff')", { style: 'normal', weight: 600 });
+var omnes = new FontFace('Omnes', "url('./fonts/omnes-semibold.ttf') format('truetype'), url('./fonts/omnes-semibold.woff2') format('woff2'), url('./fonts/omnes-semibold.woff') format('woff')", { style: 'normal', weight: 600 });
 omnes.load().then(function (omnesFontFace) {
    document.fonts.add(omnesFontFace);
 });
@@ -13,7 +13,7 @@ omnes.load().then(function (omnesFontFace) {
 
 ## Navegadores compatibles
 
-IE10+, Chrome, Firefox, Safari 5, Opera
+IE10+, Chrome, Firefox, Safari, Opera
 
 ## Caracteristicas
 - Carga en paralelo de las tipografías
