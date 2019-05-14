@@ -1,0 +1,5 @@
+https://hacks.mozilla.org/2012/02/saving-images-and-files-in-localstorage/
+https://developer.mozilla.org/es/docs/Web/API/Blob
+https://developer.mozilla.org/es/docs/Web/API/FileReader
+https://www.slant.co/options/5245/alternatives/~browserstack-alternatives
+https://googlechrome.github.io/samples/font-face-set/
