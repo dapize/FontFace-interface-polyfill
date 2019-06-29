@@ -3,3 +3,49 @@ https://developer.mozilla.org/es/docs/Web/API/Blob
 https://developer.mozilla.org/es/docs/Web/API/FileReader
 https://www.slant.co/options/5245/alternatives/~browserstack-alternatives
 https://googlechrome.github.io/samples/font-face-set/
+
+
+
+
+* FontFace
+
+  IE: ninguno
+  Edge: 76+
+  Firefox: 41+
+  Chrome: 35+
+  Safari: 10+
+  Opera: 22+
+  iOs Safari: 10+
+  Android Brownser: 67+
+  Chrome for Android: 75+
+  Firefox for Android: 67+
+
+
+* Se acepta WOFF
+
+  IE: 9+
+  Edge: 12+
+  Firefox: 3.6+
+  Chrome: 5+
+  Safari: 5.1+
+  Opera: 11.5+
+  Android Brownser: 4.4
+  Chrome for Android: 75+
+  Firefox for Android: 67+
+
+
+* Se acepta WOFF2
+
+  Navegadores:
+
+    IE: ninguno
+    Edge: version 14+
+    Firefox: 39+
+    Chrome: 36+
+    Safari: 12+
+    Opera: 23+
+    iOs Safari: 10+
+    Android Brownser: 5-6x - Chromium 67
+    Chrome for Android: 75+
+    Firefox for Android: 67+
+  
