@@ -7,3 +7,4 @@ waltographUIFont.load()
    .catch(function (err) {
       console.log(err);
    });
+
