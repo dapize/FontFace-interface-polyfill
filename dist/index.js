@@ -1,216 +1,268 @@
 (function () {
   'use strict';
 
-  var docFonts = {
-    add: function (fontCode) {
+  var DFMethods = {
+
+    addBridge: function (fontObj) {
+      if (fontObj.encoded) {
+        this.add(fontObj);
+      } else {
+        fontObj.toAdd = true;
+        FFMethods.load(fontObj);
+      }
+    },
+
+    add: function (fontObj) {
+      var styles = [];
+      var propsToIgnore = ['urlBlob', 'loaded', 'status', 'catch', 'encoded', 'src'];
+      Object.keys(fontObj).forEach(function (name) {
+        var valStyle = fontObj[name];
+        if (name === 'unicodeRange') {
+          styles.push('unicode-range: ' + valStyle);
+        } else if (name === 'featureSettings') {
+          styles.push('font-feature-settings: ' + valStyle);
+        } else {
+          if (propsToIgnore.indexOf(name) === -1) {
+            if (name === 'family') valStyle = '"' + valStyle + '"';
+            styles.push('font-' + name + ': ' + valStyle);
+          }
+        }
+      }); 
+      var byteCharacters = atob(fontObj.encoded.replace('data:application/octet-binary;base64,', ''));
+      var nByteCharacters = byteCharacters.length
+      var byteNumbers = new Array(nByteCharacters);
+      var i;
+      for (i = 0; i < nByteCharacters; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+      var byteArray = new Uint8Array(byteNumbers);
+      var blob = new Blob([byteArray], {type: 'application/octet-binary'});
+      var urlBlob = URL.createObjectURL(blob);
+      styles.push('src: url("' + urlBlob + '")')
+      var styleFont = '@font-face {\n' + styles.join(';\n') + '\n}';
       var styleElement = document.createElement('style');
       styleElement.type = 'text/css';
-      var styleSheet = styleElement.styleSheet;
-      styleSheet ? styleSheet.cssText = fontCode : styleElement.innerHTML = fontCode;
+      styleElement.styleSheet ? styleElement.styleSheet.cssText = styleFont : styleElement.innerHTML = styleFont;
       document.head.appendChild(styleElement);
     }
-  };
-
-  var FontFace = function (family, fonts, settings) {
-    this.config = {
-      'font-family': '\'' + family + '\'',
-      'font-style': 'normal',
-      'font-weight': 'normal',
-      'font-feature-settings': 'normal',
-      'font-stretch': 'normal',
-      'unicode-range': 'U+0-10FFFF',
-      'font-variant': 'normal',
-      'font-display': 'swap'
-    };
-    this.settings(settings);
-    this.urlS(fonts);
-  };
-
-  FontFace.prototype.settings = function (settings) {
-    var _this = this;
-    if (settings === undefined) return;
-    var equivalents = {
-      family: 'font-family',
-      display: 'font-display',
-      featureSettings: 'font-feature-settings',
-      stretch: 'font-stretch',
-      style: 'font-style',
-      unicodeRange: 'unicode-range',
-      variant: 'font-variant',
-      weight: 'font-weight'
-    };
-    Object.keys(settings).forEach(function (nameShort) {
-      var longName = equivalents[nameShort];
-      if (longName !== undefined) {
-        var proVal = settings[nameShort];
-        if (proVal !== _this.config[longName]) _this.config[longName] = settings[nameShort];
-      }
-    });
-  };
-
-  FontFace.prototype.detectIE = function () {
-    var ua = window.navigator.userAgent;
-    var msie = ua.indexOf('MSIE ');
-    if (msie > 0) {
-      return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
-    }
-    var trident = ua.indexOf('Trident/');
-    if (trident > 0) {
-      var rv = ua.indexOf('rv:');
-      return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
-    }
-    var edge = ua.indexOf('Edge/');
-    if (edge > 0) {
-      return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
-    }
-    return false;
-  };
-
-  FontFace.prototype.urlS = function (urlS) {
-    if (urlS === undefined) return;
-    var arrUrls = urlS.match(/url\(.*?\)/g);
-    arrUrls.forEach(function (url, index) {
-      url = url.replace(/'/g, '');
-      arrUrls[index] = url.replace('url(', '').replace(')', '');
-    });
-    this.fonts = arrUrls;
-    this.src = urlS;
-  };
-
-  FontFace.prototype.base64Encode = function (str) {
-    var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    var out = '', i = 0, len = str.length, c1, c2, c3;
-    while (i < len) {
-      c1 = str.charCodeAt(i++) & 0xff;
-      if (i == len) {
-        out += CHARS.charAt(c1 >> 2);
-        out += CHARS.charAt((c1 & 0x3) << 4);
-        out += '==';
-        break;
-      }
-      c2 = str.charCodeAt(i++);
-      if (i == len) {
-        out += CHARS.charAt(c1 >> 2);
-        out += CHARS.charAt(((c1 & 0x3)<< 4) | ((c2 & 0xF0) >> 4));
-        out += CHARS.charAt((c2 & 0xF) << 2);
-        out += '=';
-        break;
-      }
-      c3 = str.charCodeAt(i++);
-      out += CHARS.charAt(c1 >> 2);
-      out += CHARS.charAt(((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4));
-      out += CHARS.charAt(((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6));
-      out += CHARS.charAt(c3 & 0x3F);
-    }
-    return out;
   }
+  
+  var FFMethods = {
 
-  FontFace.prototype.cache = function (key, val) {
-    if (val === undefined) return localStorage.getItem(key);
-    localStorage.setItem(key, val);
-  };
-
-  FontFace.prototype.get = function (url, cb) {
-    var _this = this;
-    var fontFileName = url;
-    if (url.indexOf('/') !== -1) {
-      var splitUrl = url.split('/');
-      fontFileName = splitUrl[splitUrl.length - 1];
-    }
-    var fontFormat = fontFileName.split('.')[1];
-    var fontCached = this.cache(fontFileName);
-    if (fontCached !== null) {
-      cb(fontFormat, fontCached);
-    } else {
-      var request = new XMLHttpRequest();
-      request.open('GET', url);
-      if (request.overrideMimeType) request.overrideMimeType('text/plain; charset=x-user-defined');
-      request.addEventListener('readystatechange', function(e) {
-        if(request.readyState == 4) {
-          if (request.status === 200) {
-            var fontEncode = _this.base64Encode(request.responseText);
-            _this.cache(fontFileName, fontEncode);
-            cb(fontFormat, fontEncode);
-          } else {
-            return console.log('Ocurrió un error obteniendo la fuente desde ' + url);
-          }
-        };
-      });
-      request.send(null);
-    }
-  };
-
-  FontFace.prototype.builder = function (urlFont, cb) {
-    var config = this.config;
-    var rules = '';
-    Object.keys(config).forEach(function (rule) {
-      var val = config[rule];
-      if (typeof val === 'string' && rule !== 'font-family') {
-        rule = rule.replace(/'/g);
+    detectIE: function () {
+      var ua = window.navigator.userAgent;
+      var msie = ua.indexOf('MSIE ');
+      if (msie > 0) {
+        return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
       }
-      rules += rule + ': ' + val + '; ';
-    });
-    if (navigator.appVersion.indexOf("MSIE 10") !== -1) {
-      cb("@font-face { " + rules + " src: " + this.src + "}");
-    } else {
-      this.get(urlFont, function (format, base64) {
-        if (format === 'ttf') format = 'truetype';
-        var srcFonts = "url('data:application/font-" + format + ";base64," + base64 + "') format('" + format + "')";
-        cb("@font-face { " + rules + " src: " + srcFonts + "}");
-      });
-    }
-  };
+      var trident = ua.indexOf('Trident/');
+      if (trident > 0) {
+        var rv = ua.indexOf('rv:');
+        return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
+      }
+      var edge = ua.indexOf('Edge/');
+      if (edge > 0) {
+        return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
+      }
+      return false;
+    },
 
-  FontFace.prototype.chooseFont = function (fonts) {
-    var fontsLength = fonts.length;
-    var fontUrlToLoad;
-    if (fontsLength === 1) {
-      fontUrlToLoad = fonts[0];
-    } else {
-      var exForIE = ['woff', 'otf', 'ttf'];
-      var exFont;
-      var isIE = this.detectIE();
-      var fontsJoin = fonts.join(',');
-      for (var f = 0; f < fontsLength; f++) {
-        var font = fonts[f];
-        if (isIE) {
-          exFont = font.substr(-4).replace('.', '');
-          if (exForIE.indexOf(exFont) !== -1) {
-            fontUrlToLoad = font;
+    getUrl: function (fonts) {
+      if (fonts === undefined) return;
+      var arrUrls = fonts.match(/url\(.*?\)/g);
+      var urlClean;
+      var urlSplitted;
+      var objUrls = {};
+      arrUrls.forEach(function (url, index) {
+        urlClean = url.replace(/'/g, '').replace('url(', '').replace(')', '')
+        urlSplitted = urlClean.split('.');
+        objUrls[urlSplitted[urlSplitted.length - 1]] = urlClean
+      });
+      var fontUrlToLoad;
+      if (this.detectIE()) {
+        var exForIE = ['woff', 'otf', 'ttf'];
+        var nExForIE = exForIE.length;
+        var f;
+        var currentFont;
+        for (f = 0; f < nExForIE; f++) {
+          var currentFont = objUrls[exForIE[f]];
+          if (currentFont !== undefined) {
+            fontUrlToLoad = currentFont;
             break;
           } else {
-            if (f === fontsLength) {
-              return console.log('no hay un formato de fuente compatible para cargarla en IE');
-            }
+            if (f === (nExForIE - 1)) fontUrlToLoad = null;
           }
+        }
+      } else {
+        if (objUrls.woff2 !== undefined) {
+          fontUrlToLoad = objUrls.woff2;
         } else {
-          if (fontsJoin.indexOf('woff2') !== -1) {
-            if (font.substr(-5) === 'woff2') {
-              fontUrlToLoad = font
-              break;
+          if (objUrls.woff !== undefined) {
+            fontUrlToLoad = objUrls.woff;
+          } else {
+            fontUrlToLoad = null;
+          }
+        }
+      }
+      return fontUrlToLoad;
+    },
+    
+    cache: function (objFont) {
+      if (objFont.src === null) {
+        if (objFont.catch && !objFont.catchSended) {
+          objFont.catchSended = true;
+          return objFont.catch('Sin url de fuente válida para cargar');
+        }
+      } else {
+        var urlSplitted = objFont.src.split('.');
+        var exFont = urlSplitted[urlSplitted.length - 1];
+        var localFont = localStorage.getItem('FontFace');
+        var fontEncoded = objFont.encoded;
+        if (fontEncoded) {
+          var fontsObj = localFont !== null ? JSON.parse(localFont) : {};
+          var fontInObj = fontsObj[objFont.family];
+          if (fontInObj !== undefined) {
+            var fontByEx = fontInObj[exFont];
+            if (fontByEx !== undefined) {
+              if (fontByEx !== fontEncoded) fontsObj[objFont.family][exFont] = fontEncoded
+            } else {
+              fontsObj[objFont.family][exFont] = fontEncoded;
             }
           } else {
-            fontUrlToLoad = font;
-             break;
+            fontsObj[objFont.family] = {};
+            fontsObj[objFont.family][exFont] = fontEncoded
+          }
+          localStorage.setItem('FontFace', JSON.stringify(fontsObj));
+        } else {
+          if (localFont === null) return false;
+          var fountInCache = false;
+          var fontsObj = JSON.parse(localFont);
+          var fontInObj = fontsObj[objFont.family];
+          if (fontInObj !== undefined) {
+            var fontByEx = fontInObj[exFont]
+            if (fontByEx !== undefined) fountInCache = fontByEx; 
+          }
+          return fountInCache;
+        }
+      }
+    },
+
+    loadOpts: function (objFont) {
+      if (objFont.then) {
+        objFont.then(objFont);
+        delete objFont['then'];
+      }
+      if (objFont.toAdd) {
+        DFMethods.add(objFont);
+        delete objFont['toAdd'];
+      }
+    },
+
+    load: function (obj) {
+      var _this = this;
+      var fontSaved = this.cache(obj);
+      if (fontSaved) {
+        obj.encoded = fontSaved;
+        obj.status = 'loaded';
+        this.loadOpts(obj);
+      } else {
+        if (!obj.src) {
+          if (obj.catch && !obj.catchSended) {
+            obj.catchSended = true;
+            return obj.catch('no se encontró un url de fuente aceptable para cargar');
+          }
+        } else {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', obj.src);
+          xhr.responseType = 'arraybuffer';
+          xhr.addEventListener('readystatechange', function(e) {
+            switch (xhr.readyState) {
+              case 3:
+                obj.status = 'loading';
+                break;
+              case 4:
+                if (xhr.status === 200) {
+                  obj.status = 'loaded';
+                  var blob = new Blob([xhr.response], {type: 'application/octet-binary'});
+                  var fileReader = new FileReader();
+                  fileReader.onload = function (evt) {
+                    obj.encoded = evt.target.result;
+                    _this.cache(obj);
+                    _this.loadOpts(obj);
+                  };
+                  fileReader.readAsDataURL(blob);
+                } else {
+                  obj.status = 'error';
+                  if (obj.catch && !obj.catchSended) {
+                    obj.catchSended = true;
+                    obj.catch(xhr.status);
+                  }
+                }
+                break;
+            }
+          });
+          xhr.send(null);
+        }
+      }
+    },
+
+    promise: function (_this) {
+      return {
+        then: function (resolve, reject) {
+          if (resolve !== undefined) _this.then = resolve;
+          if (reject !== undefined) _this.catch = reject;
+          return {
+            catch: function (cbc) {
+              if (cbc !== undefined) _this.catch = cbc;
+            }
+          }
+        },
+        catch: function (cb) {
+          if (cb !== undefined) _this.catch = cb;
+          return {
+            then: function (cbt) {
+              if (cbt !== undefined) _this.then = cbt;
+            }
           }
         }
       }
     }
-    return fontUrlToLoad;
+
+  }
+
+  /**
+   * Constructor del FontFace
+   * @param {string} family Nombre de la tipografía
+   * @param {string} fonts Lista de rutas de los fuentes web
+   * @param {object} settings Configuraciones de la fuente.
+   * @return {object} Configuraciones y métodos de la fuente a trabajar.
+   */
+  function FontFace (family, fonts, settings) {
+    if (fonts === undefined) return console.log('No se determinó enlaces para las fuentes.');
+    var config = settings || Object.create(null);
+    this.display = config.display || 'auto';
+    this.family = family;
+    this.featureSettings = config.featureSettings || 'normal';
+    this.stretch = config.stretch || 'normal';
+    this.style = config.style || 'normal';
+    this.loaded = FFMethods.promise(this);
+    this.src = FFMethods.getUrl(fonts);
+    this.status = 'unloaded';
+    this.unicodeRange = config.unicodeRange || 'U+0-10FFFF';
+    this.variant = config.variant || 'normal';
+    this.weight = config.weight || 'normal';
   }
 
   FontFace.prototype.load = function () {
     var _this = this;
-    var fontChosen = this.chooseFont(this.fonts);
-    return {
-      then: function (cb) {
-        _this.builder(fontChosen, cb);
-      }
-    };
-  };
+    setTimeout(function () {
+      FFMethods.load(_this);
+    }, 0);
+    return FFMethods.promise(_this);
+  }
 
   if (typeof window.FontFace === 'undefined') {
-    document.fonts = docFonts;
     window.FontFace = FontFace;
+    document.fonts = {
+      add: DFMethods.addBridge.bind(DFMethods)
+    };
   }
 }());
