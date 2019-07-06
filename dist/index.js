@@ -14,7 +14,7 @@
 
     add: function (fontObj) {
       var styles = [];
-      var propsToIgnore = ['urlBlob', 'loaded', 'status', 'catch', 'encoded', 'src'];
+      var propsToIgnore = ['urlBlob', 'loaded', 'status', 'catch', 'encoded', 'src', 'then'];
       Object.keys(fontObj).forEach(function (name) {
         var valStyle = fontObj[name];
         if (name === 'unicodeRange') {
