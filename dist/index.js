@@ -2,7 +2,57 @@
   'use strict';
 
   var DFMethods = {
-    fontsAdded: []
+    fontsAdded: [],
+
+    add: function add (fontObj) {
+      var styles = [];
+      var objToSave = Object.create(null);
+      var propsToIgnore = ['urlBlob', 'loaded', 'status', 'catch', 'encoded', 'src', 'then', 'thenLoaded', 'catchLoaded'];
+      var valStyle 
+      var ruleToAdd;
+      Object.keys(fontObj).forEach(function (name) {
+        if (propsToIgnore.indexOf(name) === -1) {
+          valStyle = fontObj[name];
+          switch(name) {
+            case 'unicodeRange':
+              ruleToAdd = 'unicode-range: ' + valStyle;
+              break;
+            case 'featureSettings':
+              ruleToAdd = 'font-feature-settings: ' + valStyle;
+              break;
+            case 'family':
+              ruleToAdd = 'font-' + name + ': "' + valStyle + '"';
+              break;
+            default:
+              ruleToAdd = 'font-' + name + ': ' + valStyle;
+          }
+          styles.push(ruleToAdd);
+          objToSave[name] = valStyle;
+        } 
+      }); 
+      objToSave.loaded = fontObj.loaded;
+      this.fontsAdded.push(objToSave);
+      var byteCharacters = atob(fontObj.encoded.replace('data:application/octet-binary;base64,', ''));
+      var nByteCharacters = byteCharacters.length
+      var byteNumbers = new Array(nByteCharacters);
+      var i;
+      for (i = 0; i < nByteCharacters; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+      var byteArray = new Uint8Array(byteNumbers);
+      var blob = new Blob([byteArray], {type: 'application/octet-binary'});
+      var urlBlob = URL.createObjectURL(blob);
+      styles.push('src: url("' + urlBlob + '")')
+      var styleFont = '@font-face {' + styles.join(';') + '}';
+      var docStyles = document.styleSheets;
+      if (!docStyles.length) {
+        var styleElement = document.createElement('style');
+        styleElement.type = 'text/css';
+        styleElement.styleSheet ? styleElement.styleSheet.cssText = styleFont : styleElement.innerHTML = styleFont;
+        document.head.appendChild(styleElement);
+      } else {
+        docStyles[0].insertRule('' + styleFont + '', 0);
+      }
+      return this;
+    }
   }
   
   var FFMethods = {
@@ -67,10 +117,7 @@
     
     cache: function (objFont) {
       if (objFont.src === null) {
-        if (objFont.catch && !objFont.catchSended) {
-          objFont.catchSended = true;
-          return objFont.catch('Sin url de fuente válida para cargar');
-        }
+        this.loadOpts(objFont, 'catch', 'invalid url');
       } else {
         var urlSplitted = objFont.src.split('.');
         var exFont = urlSplitted[urlSplitted.length - 1];
@@ -105,15 +152,21 @@
       }
     },
 
-    loadOpts: function (objFont) {
-      if (objFont.then) {
-        objFont.then(objFont);
-        delete objFont['then'];
+    loadOpts: function (objFont, from, err) {
+      var methods = ['thenLoaded', 'then', 'toAdd, catch', 'catchLoaded'];
+      var maxExIndex = 3;
+      var response = objFont;
+      if (from === 'catch') {
+        methods = methods.reverse();
+        maxExIndex = 2;
+        response = err;
       }
-      if (objFont.toAdd) {
-        DFMethods.add(objFont);
-        delete objFont['toAdd'];
-      }
+      methods.forEach(function (method, i) {
+        if (objFont[method]) {
+          if (i < maxExIndex) (method === 'toAdd') ? DFMethods.add(response) : objFont[method](response);
+          delete objFont[method];
+        }
+      });
     },
 
     load: function (obj) {
@@ -122,13 +175,10 @@
       if (fontSaved) {
         obj.encoded = fontSaved;
         obj.status = 'loaded';
-        this.loadOpts(obj);
+        this.loadOpts(obj, 'then');
       } else {
         if (!obj.src) {
-          if (obj.catch && !obj.catchSended) {
-            obj.catchSended = true;
-            return obj.catch('no se encontró un url de fuente aceptable para cargar');
-          }
+          this.loadOpts(obj, 'catch', 'invalid url');
         } else {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', obj.src);
@@ -146,15 +196,12 @@
                   fileReader.onload = function (evt) {
                     obj.encoded = evt.target.result;
                     _this.cache(obj);
-                    _this.loadOpts(obj);
+                    _this.loadOpts(obj, 'then');
                   };
                   fileReader.readAsDataURL(blob);
                 } else {
                   obj.status = 'error';
-                  if (obj.catch && !obj.catchSended) {
-                    obj.catchSended = true;
-                    obj.catch(xhr.status);
-                  }
+                  _this.loadOpts(obj, 'catch', xhr.status);
                 }
                 break;
             }
@@ -185,8 +232,37 @@
         }
       }
     }
-
   }
+
+  function Promise(self, nameThen, nameCatch) {
+    this._this = self;
+    this._nameThen = nameThen;
+    this._nameCatch = nameCatch;
+  }
+
+  Promise.prototype.then = function (resolve, reject) {
+    var _this = this._this;
+    if (resolve !== undefined) _this[this._nameThen] = resolve;
+    if (reject !== undefined) _this[this._nameCatch] = reject;
+    var _self = this;
+    return {
+      catch: function (cbc) {
+        if (cbc !== undefined) _this[_self._nameCatch] = cbc;
+      }
+    }
+  };
+
+  Promise.prototype.catch = function (reject) {
+    var _this = this._this;
+    if (reject !== undefined) _this[this._nameCatch] = reject;
+    var _self = this;
+    return {
+      then: function (resolve) {
+        if (resolve !== undefined) _this[_self.nameThen] = resolve;
+      }
+    }
+  };
+
 
   /**
    * Constructor del FontFace
@@ -203,7 +279,8 @@
     this.featureSettings = config.featureSettings || 'normal';
     this.stretch = config.stretch || 'normal';
     this.style = config.style || 'normal';
-    this.loaded = FFMethods.promise(this);
+    // this.loaded = FFMethods.promise(this);
+    this.loaded = new Promise(this, 'thenLoaded', 'catchLoaded');
     this.src = FFMethods.getUrl(fonts);
     this.status = 'unloaded';
     this.unicodeRange = config.unicodeRange || 'U+0-10FFFF';
@@ -216,7 +293,7 @@
     setTimeout(function () {
       FFMethods.load(_this);
     }, 0);
-    return FFMethods.promise(_this);
+    return new Promise(_this, 'then', 'catch');
   }
 
   /**
@@ -231,52 +308,7 @@
       fontObj.toAdd = true;
       FFMethods.load(fontObj);
     } else {
-      var styles = [];
-      var objToSave = Object.create(null);
-      var propsToIgnore = ['urlBlob', 'loaded', 'status', 'catch', 'encoded', 'src', 'then'];
-      var valStyle 
-      var ruleToAdd;
-      Object.keys(fontObj).forEach(function (name) {
-        if (propsToIgnore.indexOf(name) === -1) {
-          valStyle = fontObj[name];
-          switch(name) {
-            case 'unicodeRange':
-              ruleToAdd = 'unicode-range: ' + valStyle;
-              break;
-            case 'featureSettings':
-              ruleToAdd = 'font-feature-settings: ' + valStyle;
-              break;
-            case 'family':
-              ruleToAdd = 'font-' + name + ': "' + valStyle + '"';
-              break;
-            default:
-              ruleToAdd = 'font-' + name + ': ' + valStyle;
-          }
-          styles.push(ruleToAdd);
-          objToSave[name] = valStyle;
-        } 
-      }); 
-      DFMethods.fontsAdded.push(objToSave);
-      var byteCharacters = atob(fontObj.encoded.replace('data:application/octet-binary;base64,', ''));
-      var nByteCharacters = byteCharacters.length
-      var byteNumbers = new Array(nByteCharacters);
-      var i;
-      for (i = 0; i < nByteCharacters; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-      var byteArray = new Uint8Array(byteNumbers);
-      var blob = new Blob([byteArray], {type: 'application/octet-binary'});
-      var urlBlob = URL.createObjectURL(blob);
-      styles.push('src: url("' + urlBlob + '")')
-      var styleFont = '@font-face {' + styles.join(';') + '}';
-      var docStyles = document.styleSheets;
-      if (!docStyles.length) {
-        var styleElement = document.createElement('style');
-        styleElement.type = 'text/css';
-        styleElement.styleSheet ? styleElement.styleSheet.cssText = styleFont : styleElement.innerHTML = styleFont;
-        document.head.appendChild(styleElement);
-      } else {
-        docStyles[0].insertRule('' + styleFont + '', 0);
-      }
-      return this;
+      DFMethods.add(fontObj);
     } 
   };
 
