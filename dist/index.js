@@ -117,7 +117,7 @@
     
     cache: function (objFont) {
       if (objFont.src === null) {
-        this.loadOpts(objFont, 'catch', 'invalid url');
+        this.exeMethods('catch', objFont, 'invalid url');
       } else {
         var urlSplitted = objFont.src.split('.');
         var exFont = urlSplitted[urlSplitted.length - 1];
@@ -152,21 +152,19 @@
       }
     },
 
-    loadOpts: function (objFont, from, err) {
-      var methods = ['thenLoaded', 'then', 'toAdd, catch', 'catchLoaded'];
-      var maxExIndex = 3;
-      var response = objFont;
-      if (from === 'catch') {
-        methods = methods.reverse();
-        maxExIndex = 2;
-        response = err;
+    exeMethods: function (type, objFont, errMsg) {
+      var objMsg = objFont;
+      var arrMethods = ['then', 'thenLoaded', 'toAdd'];
+      if (type === 'catch') {
+        arrMethods = ['catch', 'catchLoaded'];
+        objMsg = errMsg;
       }
-      methods.forEach(function (method, i) {
+      arrMethods.forEach(function (method) {
         if (objFont[method]) {
-          if (i < maxExIndex) (method === 'toAdd') ? DFMethods.add(response) : objFont[method](response);
+          (method === 'toAdd') ? DFMethods.add(objMsg) : objFont[method](objMsg);
           delete objFont[method];
         }
-      });
+      }); 
     },
 
     load: function (obj) {
@@ -175,10 +173,10 @@
       if (fontSaved) {
         obj.encoded = fontSaved;
         obj.status = 'loaded';
-        this.loadOpts(obj, 'then');
+        this.exeMethods('then', obj);
       } else {
         if (!obj.src) {
-          this.loadOpts(obj, 'catch', 'invalid url');
+          this.exeMethods('catch', obj, 'invalid url');
         } else {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', obj.src);
@@ -196,12 +194,12 @@
                   fileReader.onload = function (evt) {
                     obj.encoded = evt.target.result;
                     _this.cache(obj);
-                    _this.loadOpts(obj, 'then');
+                    _this.exeMethods('then', obj);
                   };
                   fileReader.readAsDataURL(blob);
                 } else {
                   obj.status = 'error';
-                  _this.loadOpts(obj, 'catch', xhr.status);
+                  _this.exeMethods('catch', obj, xhr.status);
                 }
                 break;
             }
@@ -209,29 +207,8 @@
           xhr.send(null);
         }
       }
-    },
-
-    promise: function (_this) {
-      return {
-        then: function (resolve, reject) {
-          if (resolve !== undefined) _this.then = resolve;
-          if (reject !== undefined) _this.catch = reject;
-          return {
-            catch: function (cbc) {
-              if (cbc !== undefined) _this.catch = cbc;
-            }
-          }
-        },
-        catch: function (cb) {
-          if (cb !== undefined) _this.catch = cb;
-          return {
-            then: function (cbt) {
-              if (cbt !== undefined) _this.then = cbt;
-            }
-          }
-        }
-      }
     }
+    
   }
 
   function Promise(self, nameThen, nameCatch) {
@@ -279,7 +256,6 @@
     this.featureSettings = config.featureSettings || 'normal';
     this.stretch = config.stretch || 'normal';
     this.style = config.style || 'normal';
-    // this.loaded = FFMethods.promise(this);
     this.loaded = new Promise(this, 'thenLoaded', 'catchLoaded');
     this.src = FFMethods.getUrl(fonts);
     this.status = 'unloaded';
