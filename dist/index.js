@@ -207,29 +207,8 @@
           xhr.send(null);
         }
       }
-    },
-
-    promise: function (_this) {
-      return {
-        then: function (resolve, reject) {
-          if (resolve !== undefined) _this.then = resolve;
-          if (reject !== undefined) _this.catch = reject;
-          return {
-            catch: function (cbc) {
-              if (cbc !== undefined) _this.catch = cbc;
-            }
-          }
-        },
-        catch: function (cb) {
-          if (cb !== undefined) _this.catch = cb;
-          return {
-            then: function (cbt) {
-              if (cbt !== undefined) _this.then = cbt;
-            }
-          }
-        }
-      }
     }
+    
   }
 
   function Promise(self, nameThen, nameCatch) {
