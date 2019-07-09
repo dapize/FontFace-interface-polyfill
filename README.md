@@ -49,6 +49,13 @@ IE11+, Chrome, Firefox, Safari, Opera
 - Usa el localStorage como caché.
 - Simulación de una respuesta tipo promesa (usando el .then y .catch).
 
+### Métodos disponibles
+- document.fonts.add()
+- document.fonts.forEach()
+
+### Getters
+- document.fonts.size
+
 Por el momento es todo lo que trae, más adelante agregaré más caracteristicas, como más métodos y eventos.
 
 Licencia
