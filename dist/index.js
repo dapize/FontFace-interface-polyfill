@@ -294,9 +294,9 @@
     DFMethods.fontsAdded.forEach(function (font) { if (cb) cb(font) });
   };
 
-  if (typeof window.FontFace2 === 'undefined') {
-    window.FontFace2 = FontFace;
-    Object.defineProperty(document, 'fonts2', {
+  if (typeof window.FontFace === 'undefined') {
+    window.FontFace = FontFace;
+    Object.defineProperty(document, 'fonts', {
       get: function () {
         return new FontFaceSet();
       }
