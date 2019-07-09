@@ -2,6 +2,7 @@
   'use strict';
 
   var DFMethods = {
+    
     fontsAdded: [],
 
     add: function add (fontObj) {
@@ -53,8 +54,9 @@
       }
       return this;
     }
+
   }
-  
+
   var FFMethods = {
 
     detectIE: function () {
@@ -288,9 +290,13 @@
     } 
   };
 
-  if (typeof window.FontFace === 'undefined') {
-    window.FontFace = FontFace;
-    Object.defineProperty(document, 'fonts', {
+  FontFaceSet.prototype.forEach = function forEach (cb) {
+    DFMethods.fontsAdded.forEach(function (font) { if (cb) cb(font) });
+  };
+
+  if (typeof window.FontFace2 === 'undefined') {
+    window.FontFace2 = FontFace;
+    Object.defineProperty(document, 'fonts2', {
       get: function () {
         return new FontFaceSet();
       }
