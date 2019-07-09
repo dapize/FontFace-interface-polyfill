@@ -294,6 +294,12 @@
     DFMethods.fontsAdded.forEach(function (font) { if (cb) cb(font) });
   };
 
+  Object.defineProperty(FontFaceSet.prototype, 'size', {
+    get: function () {
+      return DFMethods.fontsAdded.length;
+    }
+  })
+
   if (typeof window.FontFace === 'undefined') {
     window.FontFace = FontFace;
     Object.defineProperty(document, 'fonts', {
