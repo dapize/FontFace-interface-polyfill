@@ -6,7 +6,6 @@
       <body>
         <h1 id="fontface-interface-polyfill">FontFace interface - Polyfill</h1>
 <p>Es un polyfill para la interfaz FontFace, que se usa para cargar las tipografías webs por Javascript.</p>
-<p>Actualmente solo tiene un método que es el &#39;load&#39;, y sirve para realizar la carga de la fuente.</p>
 <p>Este polyfill mantiene la sintaxis exacta de la interfaz nativa FontFace, así que no hay ningún problema que se use exactamente igual.</p>
 <pre><code class="lang-js">var omnes = new FontFace(&#39;Omnes&#39;, &quot;url(&#39;./fonts/omnes-semibold.ttf&#39;) format(&#39;truetype&#39;), url(&#39;./fonts/omnes-semibold.woff2&#39;) format(&#39;woff2&#39;), url(&#39;./fonts/omnes-semibold.woff&#39;) format(&#39;woff&#39;)&quot;, { style: &#39;normal&#39;, weight: 600 });
 </code></pre>
@@ -47,6 +46,34 @@ omnes.load();
 <li>Usa el localStorage como caché.</li>
 <li>Simulación de una respuesta tipo promesa (usando el .then y .catch).</li>
 </ul>
+<h3 id="m-todos-disponibles">Métodos disponibles</h3>
+<ul>
+<li>document.fonts.add() : Sirve para agregar la tipografía cargada.</li>
+</ul>
+<pre><code class="lang-javascript">/* Ejemplo tomando como base el ejemplo de modo uso*/
+omnes.load().then(function (fontObj) {
+   document.fonts.add(fontObj);
+};
+</code></pre>
+<ul>
+<li>document.fonts.delete() : Sirve para borrar una tipografía previamente agregada</li>
+</ul>
+<pre><code class="lang-javascript">/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.delete(omnes)
+</code></pre>
+<ul>
+<li>document.fonts.forEach() : Sirve para recorrer las tipografías añadidas.</li>
+</ul>
+<pre><code class="lang-javascript">/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.forEach(function (font) {
+   console.log(&#39;Nombre: &#39; + font.family);
+});
+</code></pre>
+<h3 id="getters">Getters</h3>
+<ul>
+<li>document.fonts.size : Devuelve el número de tipografías agregadas.</li>
+</ul>
+<hr>
 <p>Por el momento es todo lo que trae, más adelante agregaré más caracteristicas, como más métodos y eventos.</p>
 <h2 id="licencia">Licencia</h2>
 <p>MIT</p>

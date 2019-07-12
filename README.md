@@ -1,8 +1,6 @@
 # FontFace interface - Polyfill
 Es un polyfill para la interfaz FontFace, que se usa para cargar las tipografías webs por Javascript.
 
-Actualmente solo tiene un método que es el 'load', y sirve para realizar la carga de la fuente.
-
 Este polyfill mantiene la sintaxis exacta de la interfaz nativa FontFace, así que no hay ningún problema que se use exactamente igual.
 
 ```js
@@ -50,11 +48,37 @@ IE11+, Chrome, Firefox, Safari, Opera
 - Simulación de una respuesta tipo promesa (usando el .then y .catch).
 
 ### Métodos disponibles
-- document.fonts.add()
-- document.fonts.forEach()
+- document.fonts.add() : Sirve para agregar la tipografía cargada.
+
+```javascript
+/* Ejemplo tomando como base el ejemplo de modo uso*/
+omnes.load().then(function (fontObj) {
+   document.fonts.add(fontObj);
+};
+```
+
+- document.fonts.delete() : Sirve para borrar una tipografía previamente agregada
+
+```javascript
+/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.delete(omnes)
+```
+
+- document.fonts.forEach() : Sirve para recorrer las tipografías añadidas.
+
+```javascript
+/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.forEach(function (font) {
+   console.log('Nombre: ' + font.family);
+});
+```
+
+
 
 ### Getters
-- document.fonts.size
+- document.fonts.size : Devuelve el número de tipografías agregadas.
+
+---
 
 Por el momento es todo lo que trae, más adelante agregaré más caracteristicas, como más métodos y eventos.
 
