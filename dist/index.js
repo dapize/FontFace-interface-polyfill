@@ -330,10 +330,11 @@
 
   FontFaceSet.prototype.delete = function (objFont) {
     var family = objFont.family;
-    if (!family) return console.log('No se puede borrar una fuente sin determinar su nombre');
-    if (!this.size) return console.log('No se han agregado tipografías');
+    if (!family) return false;
+    if (!this.size) return false;
     var rulesToCheck = ['family', 'style', 'weight'];
     var indexFTR = null;
+    var fontDeleted = false;
     DFMethods.fontsAdded.filter(function (font, iFAdded) {
       if (3 === rulesToCheck.filter(function (ruleCss) {
         return font[ruleCss] === objFont[ruleCss];
@@ -345,6 +346,7 @@
       if (font.id) {
         var elStyle = document.getElementById(font.id);
         elStyle.parentNode.removeChild(elStyle);
+        fontDeleted = true;
       } else {
         var styleSheetFont = document.styleSheets[font.index].cssRules;
         if (!styleSheetFont.length) return console.log('Sin reglas CSS');
@@ -360,6 +362,7 @@
               return rulesJoined.indexOf('font-' + oneRule + ':' + objFont[oneRule].replace(/ /g, '').toLowerCase()) === -1 ? false : true;
             }).length) {
               document.styleSheets[font.index].deleteRule(ikS);
+              fontDeleted = true;
               break;
             }
           }
@@ -367,7 +370,14 @@
       }
       DFMethods.fontsAdded.splice(indexFTR, 1);
     });
+    return fontDeleted;
   };
+
+  FontFaceSet.prototype.clear = function () {
+    if (!this.size) return;
+    DFMethods.fontsAdded.slice(0).forEach(this.delete.bind(this));
+  };
+
 
   Object.defineProperty(FontFaceSet.prototype, 'size', {
     get: function () {
