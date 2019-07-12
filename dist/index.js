@@ -333,45 +333,39 @@
     if (!family) return console.log('No se puede borrar una fuente sin determinar su nombre');
     if (!this.size) return console.log('No se han agregado tipografías');
     var rulesToCheck = ['family', 'style', 'weight'];
-    DFMethods.fontsAdded.filter(function (font) {
-      return 3 === rulesToCheck.filter(function (ruleCss) {
+    var indexFTR = null;
+    DFMethods.fontsAdded.filter(function (font, iFAdded) {
+      if (3 === rulesToCheck.filter(function (ruleCss) {
         return font[ruleCss] === objFont[ruleCss];
-      }).length;
+      }).length) {
+        indexFTR = iFAdded;
+        return true;
+      };
     }).map(function (font) {
       if (font.id) {
         var elStyle = document.getElementById(font.id);
         elStyle.parentNode.removeChild(elStyle);
-      } else { // font.index
+      } else {
         var styleSheetFont = document.styleSheets[font.index].cssRules;
         if (!styleSheetFont.length) return console.log('Sin reglas CSS');
-        var keysStyles = Object.keys(styleSheetFont);
-        var nKeyStyles = keysStyles.length;
-        var listStyles;
-        var ruleStyle;
-        var propCss;
-        var ikS;
+        var nKeyStyles = Object.keys(styleSheetFont).length, ruleCssText, ruleStyle, rulesJoined, ikS;
         for (ikS = 0; ikS < nKeyStyles; ikS++) {
           ruleStyle = styleSheetFont[ikS];
-          listStyles = ruleStyle.style;
-          if (ruleStyle.media === undefined && listStyles !== undefined) {
-            console.log(listStyles);
-            var rulesCssChecking = rulesToCheck.filter(function (oneRule) {
-              propCss = listStyles['font' + oneRule.charAt().toUpperCase() + oneRule.slice(1)];
-              if (propCss !== undefined) {
-                console.log('font' + oneRule.charAt().toUpperCase() + oneRule.slice(1) + ' - ' + propCss.replace(/"/g, '') + ' - ' + objFont[oneRule]);
-                return propCss.replace(/"/g, '') === objFont[oneRule];
-              } else {
-                return false;
-              }
-            }).length;
-            console.log(rulesCssChecking);
-            if (rulesCssChecking === 3) {
+          ruleCssText = ruleStyle.cssText;
+          if (ruleStyle.media === undefined && ruleCssText !== undefined) {
+            rulesJoined = ruleCssText.split(ruleCssText.indexOf('\n') !== -1 ? '\n' : ';').map(function (oneLineRule) {
+              if (oneLineRule.indexOf(':') !== -1) return oneLineRule.replace(/;/g, '').replace(/ /g, '').replace(/\"/g, '').toLowerCase();
+            }).join('|');
+            if (3 === rulesToCheck.filter(function (oneRule) {
+              return rulesJoined.indexOf('font-' + oneRule + ':' + objFont[oneRule].replace(/ /g, '').toLowerCase()) === -1 ? false : true;
+            }).length) {
               document.styleSheets[font.index].deleteRule(ikS);
               break;
             }
           }
         };
       }
+      DFMethods.fontsAdded.splice(indexFTR, 1);
     });
   };
 
@@ -381,9 +375,9 @@
     }
   })
 
-  if (typeof window.FontFace2 === 'undefined') {
-    window.FontFace2 = FontFace;
-    Object.defineProperty(document, 'fonts2', {
+  if (typeof window.FontFace === 'undefined') {
+    window.FontFace = FontFace;
+    Object.defineProperty(document, 'fonts', {
       get: function () {
         return new FontFaceSet();
       }
