@@ -1,9 +1,18 @@
-(function () {
+(function (window, document) {
   'use strict';
 
   var DFMethods = {
     
     fontsAdded: [],
+
+    createInDom: function (id, styleFont, objFont) {
+      var styleElement = document.createElement('style');
+      styleElement.type = 'text/css';
+      styleElement.id = id;
+      styleElement.innerHTML = styleFont;
+      document.head.appendChild(styleElement);
+      objFont.id = id;
+    },
 
     add: function add (fontObj) {
       var styles = [];
@@ -31,8 +40,6 @@
           objToSave[name] = valStyle;
         } 
       }); 
-      objToSave.loaded = fontObj.loaded;
-      this.fontsAdded.push(objToSave);
       var byteCharacters = atob(fontObj.encoded.replace('data:application/octet-binary;base64,', ''));
       var nByteCharacters = byteCharacters.length
       var byteNumbers = new Array(nByteCharacters);
@@ -44,14 +51,33 @@
       styles.push('src: url("' + urlBlob + '")')
       var styleFont = '@font-face {' + styles.join(';') + '}';
       var docStyles = document.styleSheets;
+      var idStyle = 'ffp' + (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+      objToSave.index = null;
       if (!docStyles.length) {
-        var styleElement = document.createElement('style');
-        styleElement.type = 'text/css';
-        styleElement.styleSheet ? styleElement.styleSheet.cssText = styleFont : styleElement.innerHTML = styleFont;
-        document.head.appendChild(styleElement);
+        this.createInDom(idStyle, styleFont, objToSave);
       } else {
-        docStyles[0].insertRule('' + styleFont + '', 0);
+        var indexStyleSheet = false;
+        var objCssStyles = Object.keys(docStyles);
+        var nObjCssStyles = objCssStyles.length;
+        var attachStyle = false;
+        var ifont;
+        for (ifont = 0; ifont < nObjCssStyles; ifont++) {
+          if (docStyles[ifont].ownerNode.id.substr(0, 3) !== 'ffp') {
+            attachStyle = true;
+            indexStyleSheet = ifont;
+            break;
+          }
+        }
+        if (attachStyle) {
+          var scopeStyle = docStyles[indexStyleSheet];
+          scopeStyle.insertRule('' + styleFont + '', scopeStyle.length);
+          objToSave.index = indexStyleSheet;
+        } else {
+          this.createInDom(idStyle, styleFont, objToSave);
+        }
       }
+      objToSave.loaded = fontObj.loaded;
+      this.fontsAdded.push(objToSave);
       return this;
     }
 
@@ -160,6 +186,8 @@
       if (type === 'catch') {
         arrMethods = ['catch', 'catchLoaded'];
         objMsg = errMsg;
+      } else {
+        delete objFont['catch'];
       }
       arrMethods.forEach(function (method) {
         if (objFont[method]) {
@@ -213,6 +241,12 @@
     
   }
 
+  /**
+   * Construye una promesa simulada
+   * @param {object} self Objeto donde apuntarán los métodos
+   * @param {string} nameThen nombre del 'then'
+   * @param {strong} nameCatch nombre del 'catch
+   */
   function Promise(self, nameThen, nameCatch) {
     this._this = self;
     this._nameThen = nameThen;
@@ -275,7 +309,7 @@
   }
 
   /**
-   * Constructor del FontFaceSet
+   * Constructor del FontFaceSet orientado a document.fonts
    * @return {object} Configuraciones y métodos.
    */
   function FontFaceSet() {
@@ -294,6 +328,47 @@
     DFMethods.fontsAdded.forEach(function (font) { if (cb) cb(font) });
   };
 
+  FontFaceSet.prototype.delete = function (objFont) {
+    var family = objFont.family;
+    if (!family) return console.log('No se puede borrar una fuente sin determinar su nombre');
+    if (!this.size) return console.log('No se han agregado tipografías');
+    var rulesToCheck = ['family', 'style', 'weight'];
+    var indexFTR = null;
+    DFMethods.fontsAdded.filter(function (font, iFAdded) {
+      if (3 === rulesToCheck.filter(function (ruleCss) {
+        return font[ruleCss] === objFont[ruleCss];
+      }).length) {
+        indexFTR = iFAdded;
+        return true;
+      };
+    }).map(function (font) {
+      if (font.id) {
+        var elStyle = document.getElementById(font.id);
+        elStyle.parentNode.removeChild(elStyle);
+      } else {
+        var styleSheetFont = document.styleSheets[font.index].cssRules;
+        if (!styleSheetFont.length) return console.log('Sin reglas CSS');
+        var nKeyStyles = Object.keys(styleSheetFont).length, ruleCssText, ruleStyle, rulesJoined, ikS;
+        for (ikS = 0; ikS < nKeyStyles; ikS++) {
+          ruleStyle = styleSheetFont[ikS];
+          ruleCssText = ruleStyle.cssText;
+          if (ruleStyle.media === undefined && ruleCssText !== undefined) {
+            rulesJoined = ruleCssText.split(ruleCssText.indexOf('\n') !== -1 ? '\n' : ';').map(function (oneLineRule) {
+              if (oneLineRule.indexOf(':') !== -1) return oneLineRule.replace(/;/g, '').replace(/ /g, '').replace(/\"/g, '').toLowerCase();
+            }).join('|');
+            if (3 === rulesToCheck.filter(function (oneRule) {
+              return rulesJoined.indexOf('font-' + oneRule + ':' + objFont[oneRule].replace(/ /g, '').toLowerCase()) === -1 ? false : true;
+            }).length) {
+              document.styleSheets[font.index].deleteRule(ikS);
+              break;
+            }
+          }
+        };
+      }
+      DFMethods.fontsAdded.splice(indexFTR, 1);
+    });
+  };
+
   Object.defineProperty(FontFaceSet.prototype, 'size', {
     get: function () {
       return DFMethods.fontsAdded.length;
@@ -308,4 +383,4 @@
       }
     })
   }
-}());
+}(window, document));
