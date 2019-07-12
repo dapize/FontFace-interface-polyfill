@@ -57,13 +57,6 @@ omnes.load().then(function (fontObj) {
 };
 ```
 
-- document.fonts.delete() : Sirve para borrar una tipografía previamente agregada
-
-```javascript
-/* Ejemplo tomando como base el ejemplo de modo uso*/
-document.fonts.delete(omnes)
-```
-
 - document.fonts.forEach() : Sirve para recorrer las tipografías añadidas.
 
 ```javascript
@@ -71,6 +64,20 @@ document.fonts.delete(omnes)
 document.fonts.forEach(function (font) {
    console.log('Nombre: ' + font.family);
 });
+```
+
+- document.fonts.delete() : Sirve para borrar una tipografía previamente agregada
+
+```javascript
+/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.delete(omnes)
+```
+
+- document.fonts.clear() : Sirve para borrar todas las tipografías agregadas.
+
+```javascript
+/* Ejemplo tomando como base el ejemplo de modo uso*/
+document.fonts.clear();
 ```
 
 
