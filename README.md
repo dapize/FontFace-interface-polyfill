@@ -84,6 +84,28 @@ document.fonts.clear();
 
 ### Getters
 - document.fonts.size : Devuelve el número de tipografías agregadas.
+- document.fonts.onloading : Devuelve la función guardada en el evento 'onloading'.
+- document.fonts.onloadingdone : Devuelve la función guardada en el evento 'onloadingdone'.
+- document.fonts.onloadingerror : Devuelve la función guardada en el evento 'onloadingerror'.
+
+### Setters
+- document.fonts.onloading : Asigna una función al evento 'onloading'.
+- document.fonts.onloadingdone : Asigna una función al evento 'onloadingdone'.
+- document.fonts.onloadingerror : Asigna una función al evento 'onloadingerror'.
+
+```javascript
+document.fonts.onloading = function (ffset) {
+   console.log('Cargando... ', ffset);
+};
+
+document.fonts.onloadingdone = function (ffset) {
+   console.log('¡Cargada! ', ffset);
+};
+
+document.fonts.onloadingerror = function (ffset) {
+   console.log('Error al cargar ', ffset);
+};
+```
 
 ---
 

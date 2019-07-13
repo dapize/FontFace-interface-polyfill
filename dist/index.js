@@ -79,7 +79,13 @@
       objToSave.loaded = fontObj.loaded;
       this.fontsAdded.push(objToSave);
       return this;
-    }
+    },
+
+    onloading: null,
+
+    onloadingdone: null,
+
+    onloadingerror: null
 
   }
 
@@ -173,7 +179,10 @@
           var fontInObj = fontsObj[objFont.family];
           if (fontInObj !== undefined) {
             var fontByEx = fontInObj[exFont]
-            if (fontByEx !== undefined) fountInCache = fontByEx; 
+            if (fontByEx !== undefined) {
+              this.olding('onloading', objFont); 
+              fountInCache = fontByEx;
+            }
           }
           return fountInCache;
         }
@@ -197,16 +206,23 @@
       }); 
     },
 
+    olding: function (type, ffset) {
+      var eventFn = DFMethods[type];
+      if (eventFn && typeof eventFn === 'function') eventFn(ffset);
+    },
+
     load: function (obj) {
       var _this = this;
       var fontSaved = this.cache(obj);
       if (fontSaved) {
         obj.encoded = fontSaved;
         obj.status = 'loaded';
+        this.olding('onloadingdone', obj);
         this.exeMethods('then', obj);
       } else {
         if (!obj.src) {
           this.exeMethods('catch', obj, 'invalid url');
+          _this.olding('onloadingerror', obj);
         } else {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', obj.src);
@@ -215,6 +231,7 @@
             switch (xhr.readyState) {
               case 3:
                 obj.status = 'loading';
+                _this.olding('onloading', obj);
                 break;
               case 4:
                 if (xhr.status === 200) {
@@ -225,11 +242,13 @@
                     obj.encoded = evt.target.result;
                     _this.cache(obj);
                     _this.exeMethods('then', obj);
+                    _this.olding('onloadingdone', obj);
                   };
                   fileReader.readAsDataURL(blob);
                 } else {
                   obj.status = 'error';
                   _this.exeMethods('catch', obj, xhr.status);
+                  _this.olding('onloadingerror', obj);
                 }
                 break;
             }
@@ -378,16 +397,46 @@
     DFMethods.fontsAdded.slice(0).forEach(this.delete.bind(this));
   };
 
+  Object.defineProperties(FontFaceSet.prototype, {
 
-  Object.defineProperty(FontFaceSet.prototype, 'size', {
-    get: function () {
-      return DFMethods.fontsAdded.length;
+    'size': {
+      get: function () {
+        return DFMethods.fontsAdded.length;
+      }
+    },
+
+    'onloading': {
+      get: function () {
+        return DFMethods.onloading;
+      },
+      set: function (fn) {
+        DFMethods.onloading = fn;
+      }
+    },
+
+    'onloadingdone': {
+      get: function () {
+        return DFMethods.onloadingdone;
+      },
+      set: function (fn) {
+        DFMethods.onloadingdone = fn;
+      }
+    },
+
+    'onloadingerror': {
+      get: function () {
+        return DFMethods.onloadingerror;
+      },
+      set: function (fn) {
+        DFMethods.onloadingerror = fn;
+      }
     }
-  })
 
-  if (typeof window.FontFace === 'undefined') {
-    window.FontFace = FontFace;
-    Object.defineProperty(document, 'fonts', {
+  });
+
+  if (typeof window.FontFace2 === 'undefined') {
+    window.FontFace2 = FontFace;
+    Object.defineProperty(document, 'fonts2', {
       get: function () {
         return new FontFaceSet();
       }
