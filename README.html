@@ -78,7 +78,28 @@ document.fonts.clear();
 <h3 id="getters">Getters</h3>
 <ul>
 <li>document.fonts.size : Devuelve el número de tipografías agregadas.</li>
+<li>document.fonts.onloading : Devuelve la función guardada en el evento &#39;onloading&#39;.</li>
+<li>document.fonts.onloadingdone : Devuelve la función guardada en el evento &#39;onloadingdone&#39;.</li>
+<li>document.fonts.onloadingerror : Devuelve la función guardada en el evento &#39;onloadingerror&#39;.</li>
 </ul>
+<h3 id="setters">Setters</h3>
+<ul>
+<li>document.fonts.onloading : Asigna una función al evento &#39;onloading&#39;.</li>
+<li>document.fonts.onloadingdone : Asigna una función al evento &#39;onloadingdone&#39;.</li>
+<li>document.fonts.onloadingerror : Asigna una función al evento &#39;onloadingerror&#39;.</li>
+</ul>
+<pre><code class="lang-javascript">document.fonts.onloading = function (ffset) {
+   console.log(&#39;Cargando... &#39;, ffset);
+};
+
+document.fonts.onloadingdone = function (ffset) {
+   console.log(&#39;¡Cargada! &#39;, ffset);
+};
+
+document.fonts.onloadingerror = function (ffset) {
+   console.log(&#39;Error al cargar &#39;, ffset);
+};
+</code></pre>
 <hr>
 <p>Por el momento es todo lo que trae, más adelante agregaré más caracteristicas, como más métodos y eventos.</p>
 <h2 id="licencia">Licencia</h2>

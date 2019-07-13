@@ -16,3 +16,15 @@ ArtBrewery.load()
    .catch(function (err) {
       console.log(err);
    });
+
+document.fonts.onloading = function (ffset) {
+   console.log('Cargando... ' + ffset.family);
+};
+
+document.fonts.onloadingdone = function (ffset) {
+   console.log('¡Cargada! ' + ffset.family);
+};
+
+document.fonts.onloadingerror = function (ffset) {
+   console.log('Error al cargar ' + ffset.family);
+};
